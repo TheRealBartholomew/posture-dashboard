@@ -3,17 +3,17 @@ from sqlalchemy.orm import Session
 from app.db import get_db, SessionLocal
 from app.models import User, CalibrateSession
 from datetime import datetime
-from extensions import socketio
+from extensions import socketio, logger
 
 def safe_emit_calibration_complete(name, data, user_id=None):
     try:
         room = f"user_{user_id}" if user_id else None
         socketio.emit(name, data, room=room)
     except Exception as e:
-        print(f"Failed to emit {name} to {room}: {e}")
+        logger.error(f"Failed to emit {name} to {room}: {e}")
 
     except Exception as e:
-        print(f"Failed to emit calibration_complete to user_{user_id}: {e}")
+        logger.error(f"Failed to emit calibration_complete to user_{user_id}: {e}")
 
 bp = Blueprint("calibrate", __name__, url_prefix="/api")
 

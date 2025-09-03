@@ -2,14 +2,14 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import User, NotificationSettings, PostureReading
-from extensions import socketio
+from extensions import socketio, logger
 
 def safe_emit_notification_triggered(name, data, user_id=None):
     try:
         room = f"user_{user_id}" if user_id else None
         socketio.emit(name, data, room=room)
     except Exception as e:
-        print(f"Failed to emit {name} to {room}: {e}")
+        logger.error(f"Failed to emit {name} to {room}: {e}")
 
 bp = Blueprint("notifications", __name__, url_prefix="/api")
 
@@ -23,6 +23,7 @@ def set_notification():
         
         user_id = data["user_id"]
         user = db.query(User).filter(User.id == user_id).first()
+
         if not user:
             return jsonify({"error": "User not found"}), 404
         
@@ -38,10 +39,6 @@ def set_notification():
             settings.threshold_angle = data["threshold_angle"]
         if "notification_interval" in data:
             settings.notification_interval = data["notification_interval"]
-        if "quiet_hours_start" in data:
-            settings.quiet_hours_start = data["quiet_hours_start"]
-        if "quiet_hours_end" in data:
-            settings.quiet_hours_end = data["quiet_hours_end"]
 
         db.commit()
         
@@ -51,8 +48,7 @@ def set_notification():
                 "enabled": settings.enabled,
                 "threshold_angle": settings.threshold_angle,
                 "notification_interval": settings.notification_interval,
-                "quiet_hours_start": str(settings.quiet_hours_start) if settings.quiet_hours_start else None,
-                "quiet_hours_end": str(settings.quiet_hours_end) if settings.quiet_hours_end else None,
+
             }
         }), 200
     
@@ -89,6 +85,7 @@ def get_notification(user_id):
         }), 200
 
     except Exception as e:
+        db.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()

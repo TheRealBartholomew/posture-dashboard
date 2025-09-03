@@ -11,4 +11,3 @@ handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logger.addHandler(handler)
 
-posture_buffer = {}  # user_id -> deque of recent posture readings

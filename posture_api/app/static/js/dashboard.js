@@ -14,7 +14,6 @@ const btnStart = document.getElementById("btn-start");
 const btnStop = document.getElementById("btn-stop");
 const btnRecalibrate = document.getElementById("btn-recalibrate");
 const btnReconnect = document.getElementById("btn-reconnect");
-const btnReset = document.getElementById("btn-reset");
 const btnExport = document.getElementById("btn-export");
 
 // Track whether we’re actively processing incoming updates (Start/Stop)
@@ -43,19 +42,6 @@ function connectSocket(userId) {
 
   socket.on("connect", async () => {
     console.log(`Connected as user_id=${userId} socket.id=${socket.id}`);
-    
-
-    try{
-        const response = await fetch("/api/posture-buffer?user_id=" + userId);
-        const buffered = await response.json();
-        buffered.forEach(reading => {
-          timelineChart.data.labels.push(new Date(reading.timestamp));
-          timelineChart.data.datasets[0].data.push(reading.angle);
-        });
-      timelineChart.update();
-    } catch (e) {
-      console.error("Failed to fetch buffer", e);
-  }
   });
 
   socket.on("disconnect", (reason) => {
@@ -88,9 +74,11 @@ function connectSocket(userId) {
     timelineChart.update();
 
     if (payload.quality_score === 3) {
+      console.log("33333333333333333333333333")
       sendPostureNotification("Posture Warning: Please adjust your posture.");
     }
-    else if (payload.quality_score === 5) {
+    if (payload.quality_score === 1) {
+      console.log("11111111111111111111111")
       sendPostureNotification("Posture Horrible: FIX NOW");
     }
 
@@ -144,12 +132,6 @@ btnStop?.addEventListener("click", () => {
   .then(data => {
     console.log("tracking stopped:", data);
   });
-});
-
-btnReset?.addEventListener("click", () => {
-  fetch("/api/overview/reset?user_id=" + currentUserId, { method: "POST" })
-    .then(response => response.json())
-    .then(data => console.log("today reset:", data));
 });
 
 btnExport?.addEventListener("click", () => {

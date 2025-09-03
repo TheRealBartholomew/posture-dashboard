@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.db import SessionLocal
 from app.models import User, PostureReading, CalibrateSession
 from datetime import datetime, date
-from extensions import logger, posture_buffer, socketio
+from extensions import logger, socketio
 from collections import deque
 import csv
 
@@ -16,7 +16,7 @@ def safe_emit_posture_update(name, data, user_id=None):
         room = f"user_{user_id}" if user_id else None
         socketio.emit(name, data, room=room)
     except Exception as e:
-        print(f"Failed to emit {name} to {room}: {e}")
+        logger.error(f"Failed to emit {name} to {room}: {e}")
 
 def quality_to_label(quality_score):
     if quality_score == 5:
@@ -42,27 +42,26 @@ def export_posture_data():
             mimetype="text/csv",
             headers={"Content-Disposition": "attachment; filename=posture_data.csv"}
         )
+    except Exception as e:
+        db.rollback()
+        logger.error("Error exporting posture data:", e)
     finally:
         db.close()
 
-@bp.route("/api/posture/buffer")
-def get_buffer():
-    result = []
-    for user_id, dq in posture_buffer.items():
-        # convert deque to list of readings and include user_id
-        result.extend([{"user_id": user_id, **reading} for reading in dq])
-    # optionally sort by timestamp
-    result.sort(key=lambda x: x["timestamp"])
-    return jsonify(result)
 
 @bp.route("/posture/recalibrate", methods=["POST"])
 def posture_recalibrate():
     db: Session = SessionLocal()
     try:
         data = request.get_json()
-        print("Recalibrate request:", data)
+        if not data or "user_id" not in data:
+            return jsonify({"error": "user_id is required"}), 400
+        
+        logger.info("Recalibrate request:", data)
         userId = data.get("user_id")
         user = db.query(User).filter(User.id == userId).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
 
         current_angle = db.query(PostureReading).filter(PostureReading.user_id == data.get("user_id")).order_by(PostureReading.timestamp.desc()).first().angle
         if current_angle is None:
@@ -76,6 +75,9 @@ def posture_recalibrate():
             timestamp=datetime.utcnow()
         )
 
+        if not sessionReading:
+            return jsonify({"error": "Calibration session could not be created"}), 500
+
         db.add(sessionReading)
         db.commit()
 
@@ -86,25 +88,19 @@ def posture_recalibrate():
     finally:
         db.close()
 
-@bp.route("/reset", methods=["POST"])
-def reset_posture():
-    db: Session = SessionLocal()
-    try:
-        db.query(PostureReading).filter(PostureReading.timestamp >= date.today()).delete()
-        db.commit()
-        return jsonify({"status": "reset successful"}), 200
-    finally:
-        db.close()
-
 @bp.route("/posture/toggle_tracking", methods=["POST"])
 def toggle_tracking():
-    global tracking_active
-    action = request.json.get("action")
-    if action == "start":
-        tracking_active = True
-    elif action == "stop":
-        tracking_active = False
-    return jsonify({"tracking_active": tracking_active}), 200
+    try:
+        global tracking_active
+        action = request.json.get("action")
+        if action == "start":
+            tracking_active = True
+        elif action == "stop":
+            tracking_active = False
+        return jsonify({"tracking_active": tracking_active}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @bp.route("/posture", methods=["POST"])
 def add_posture_reading():
@@ -144,17 +140,7 @@ def add_posture_reading():
         else:
             quality_score = 1
 
-        posture_label = quality_to_label(quality_score)
-
-        posture_buffer.append({
-            "user_id": user_id,
-            "angle": angle,
-            "quality_score": quality_score,
-            "posture": posture_label,
-            "timestamp": record.timestamp
-        })
-
-        
+        posture_label = quality_to_label(quality_score)      
 
         record = PostureReading(
             user_id=user_id,
@@ -168,15 +154,6 @@ def add_posture_reading():
         db.commit()
 
         logger.info(f"Added posture reading for user {user_id}: angle={angle}, quality_score={quality_score}")
-
-        if user_id not in posture_buffer:
-            posture_buffer[user_id] = deque(maxlen=100)
-        posture_buffer[user_id].append({
-            "angle": angle,
-            "quality_score": quality_score,
-            "posture": posture_label,
-            "timestamp": record.timestamp
-        })
 
         safe_emit_posture_update(
             "posture_update",

@@ -10,6 +10,7 @@ bp = Blueprint("overview", __name__, url_prefix="/api")
 @bp.route("/overview", methods=["GET"])
 def daily_overview():
     user_id = request.args.get("user_id", type=int)
+    
     if not user_id:
         return {"error": "user_id is required"}, 400
 
@@ -45,6 +46,7 @@ def daily_overview():
             "quality_counts": quality_counts
         })
     except Exception as e:
+        db.rollback()
         return {"error": str(e)}, 500
     finally:
         db.close()

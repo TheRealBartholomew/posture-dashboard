@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, join_room
 from app.db import engine, Base
 from app.routes import posture, users, calibrate, stats, notifications, overview
 import logging
-from extensions import socketio, logger, posture_buffer
+from extensions import socketio, logger
 from collections import deque
 from flask_socketio import emit
 
@@ -20,10 +20,6 @@ def dashboard():
 @socketio.on('connect')
 def handle_connect(auth):
     user_id = request.args.get('user_id', 0)
-    if user_id not in posture_buffer:
-        posture_buffer = deque(maxlen=100)
-    for reading in posture_buffer:
-        emit("posture_update", reading, room=f"user_{user_id}")
     join_room(f"user_{user_id}")
     print(f"User {user_id} connected and joined room user_{user_id}")
     

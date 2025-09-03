@@ -51,6 +51,7 @@ def list_users():
         ]
         return jsonify(users_list), 200
     except Exception as e:
+        db.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()
@@ -71,6 +72,7 @@ def get_user(user_id: int):
         }), 200
 
     except Exception as e:
+        db.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         db.close()

@@ -15,6 +15,7 @@ def get_stats():
         start_date = request.args.get("start_date")
         end_date = request.args.get("end_date")
 
+
         if not user_id:
             return jsonify({"error": "user_id is required"}), 400
         
@@ -54,6 +55,7 @@ def get_stats():
         }), 200
 
     except Exception as e:
+        db.rollback()
         return jsonify({"error": str(e)}), 500
 
     finally:
