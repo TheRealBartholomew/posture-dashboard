@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Posture Dashboard - Modern Design</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard_design_1.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Posture Dashboard</h1>
+    <div id="connection-banner" class="badge">
+      <span class="status-indicator"></span>
+      Live Monitoring
+    </div>
+  </header>
+
+  <main class="dashboard-grid">
+    <section class="card live-monitoring">
+      <h2>Live Monitoring</h2>
+      <div class="live-metrics">
+        <div class="metric">
+          <div class="label">Current Angle</div>
+          <div id="current-angle" class="value">--°</div>
+        </div>
+        <div class="metric">
+          <div class="label">Quality</div>
+          <div id="quality-indicator" class="pill">Good</div>
+        </div>
+        <div class="metric">
+          <div class="label">Session Time</div>
+          <div id="session-timer" class="value">00:00:00</div>
+        </div>
+      </div>
+
+      <div class="charts-container">
+        <div class="chart-wrap">
+          <canvas id="angle-gauge" width="280" height="280"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="live-timeline"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="card daily-overview">
+      <h2>Daily Overview</h2>
+      <div class="daily-metrics">
+        <div>Average Angle: <span id="avg-angle">--°</span></div>
+        <div>Good: <span id="count-good" style="color: var(--good);">--%</span></div>
+        <div>Warning: <span id="count-warning" style="color: var(--warn);">--%</span></div>
+        <div>Bad: <span id="count-bad" style="color: var(--bad);">--%</span></div>
+      </div>
+
+      <div class="charts-container">
+        <div class="chart-wrap">
+          <canvas id="daily-timeline"></canvas>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="daily-pie"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card controls-panel">
+      <h2>Controls</h2>
+      <div class="controls">
+        <button id="btn-start">🎯 Start Monitoring</button>
+        <button id="btn-stop">⏹️ Stop Monitoring</button>
+        <button id="btn-recalibrate">🔄 Recalibrate</button>
+        <button id="btn-reset">🔄 Reset</button>
+        <button id="btn-export">📥 Export Data</button>
+
+        <div class="field">
+          <label for="user-id">User ID</label>
+          <input id="user-id" type="number" min="1" value="1" placeholder="Enter user ID">
+          <button id="btn-reconnect" style="margin-top: 12px; background: linear-gradient(135deg, #10b981, #059669);">🔗 Reconnect</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/socket.io@4.8.1/client-dist/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
