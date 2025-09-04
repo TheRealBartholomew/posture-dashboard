@@ -1,7 +1,3 @@
-//later change all uses of userId to currentuserId
-
-
-// ---- Config & State ----
 const qs = new URLSearchParams(location.search);
 const userIdInput = document.getElementById("user-id");
 const defaultUserId = Number(userIdInput?.value || 1);
@@ -16,16 +12,11 @@ const btnRecalibrate = document.getElementById("btn-recalibrate");
 const btnReconnect = document.getElementById("btn-reconnect");
 const btnExport = document.getElementById("btn-export");
 
-// Track whether we’re actively processing incoming updates (Start/Stop)
 let liveProcessing = true;
 
-// Session timer
 let sessionStart = new Date();
 
-
-
-
-// ---- Socket.IO connection ----
+// Socket connection
 let socket = null;
 
 function connectSocket(userId) {
@@ -34,20 +25,13 @@ function connectSocket(userId) {
     socket = null;
   }
 
-  // If same origin as server, no URL needed; Socket.IO will use window.location origin
   socket = io({
-    query: { user_id: userId }  // your server reads this to join the user_{id} room
-    // If you ever host dashboard elsewhere, use: io("http://127.0.0.1:5000/", { query: { user_id: userId } })
+    query: { user_id: userId }  
   });
 
   socket.on("connect", async () => {
     console.log(`Connected as user_id=${userId} socket.id=${socket.id}`);
   });
-
-  socket.on("disconnect", (reason) => {
-    setBanner(`Disconnected: ${reason}`, "bad");
-  });
-
 
   socket.on("posture_update", (payload) => {
     const angle = Math.round(payload.angle);
@@ -74,42 +58,21 @@ function connectSocket(userId) {
     timelineChart.update();
 
     if (payload.quality_score === 3) {
-      console.log("33333333333333333333333333")
       sendPostureNotification("Posture Warning: Please adjust your posture.");
     }
     if (payload.quality_score === 1) {
-      console.log("11111111111111111111111")
       sendPostureNotification("Posture Horrible: FIX NOW");
     }
 
   });
 
-
-  socket.on("calibration_complete", () => {
-    // Show quick visual feedback
-    showToast("Calibration complete");
-    // You might also want to reset sessionStart or show baseline somewhere
-  });
-
-  socket.on("notification_triggered", (msg) => {
-    // Optional: simple UI popup; refine later
-    alert(typeof msg === "string" ? msg : "Notification triggered");
-  });
-
-  socket.on("connection_status", (status) => {
-    // status could be { online_users: [...], user_id: ... } depending on your server
-    // Useful for debugging; not displayed by default
-    // console.debug("connection_status", status);
-  });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-
-
   connectSocket(currentUserId);
 });
 
-// ---- UI handlers ----
+// Buttons
 btnStart?.addEventListener("click", () => {
   fetch("/api/posture/toggle_tracking", {
     method: "POST",
@@ -158,7 +121,7 @@ btnReconnect?.addEventListener("click", () => {
   connectSocket(currentUserId);
 });
 
-// ---- Helpers ----
+// Functions 
 function sendPostureNotification(message) {
   const now = Date.now();
   
@@ -288,10 +251,10 @@ const timelineCtx = document.getElementById('live-timeline').getContext('2d');
 const timelineChart = new Chart(timelineCtx, {
     type: 'line',
     data: {
-        labels: [], // Time labels
+        labels: [], 
         datasets: [{
             label: 'Angle',
-            data: [], // Angle data points
+            data: [], 
             borderColor: '#36A2EB',
             tension: 0.2
         }]
@@ -311,10 +274,10 @@ const dailyCtx = document.getElementById('daily-timeline').getContext('2d');
 const dailyChart = new Chart(dailyCtx, {
     type: 'line',
     data: {
-        labels: [], // Time labels
+        labels: [], 
         datasets: [{
             label: 'Angle',
-            data: [], // Angle data points
+            data: [], 
             borderColor: '#36A2EB',
             tension: 0.2
         }]
